@@ -1,61 +1,67 @@
 ---
 name: obsidian-skill-fede
-description: OpenClaw skill to interact with Obsidian vaults using our custom notesmd-cli fork.
+description: "Use when working with Federico Scheu's Obsidian vault so Hermes follows vault directives, TaskNotes conventions, and notesmd-cli-based workflows instead of ad-hoc file writes."
+version: 2.0.0
+author: Hermes Agent
+license: MIT
 metadata:
-  openclaw:
-    requires:
-      bins: [notesmd-cli]
-    config:
-      vaultPath:
-        type: string
-        description: >-
-          Filesystem path to the Obsidian vault used by this skill. If unset,
-          commands should accept --vault or use notesmd-cli set-default.
-        default: ""
-    install:
-      - id: node
-        kind: command
-        command: notesmd-cli
-        label: Requires notesmd-cli in PATH
+  hermes:
+    tags: [obsidian, vault, tasknotes, notesmd-cli, fede, para, content-pipeline]
+    related_skills: [pm-agent, fede-ops, content-pipeline]
 ---
 
-# Obsidian Skill (obsidian-skill-fede)
+# obsidian-skill-fede
 
-This skill provides read/search/write/edit capabilities for Obsidian vaults by invoking our fork of `notesmd-cli`.
+## Overview
 
-It is **vault-aware**: when operating inside a structured vault (e.g. Claudesidian / PARA / BASB), the skill must respect the vault’s own directives and conventions.
+This skill is the operational contract for working with Federico Scheu's Obsidian vault at `/home/azureuser/repos/projects/claude-second-brain`.
 
-## Features
+Its purpose is not just "edit markdown files". Its purpose is to make Hermes behave like a vault-aware operator: respect vault directives, use the TaskNotes plugin conventions, preserve PARA structure, and prefer `notesmd-cli` workflows over improvised raw file edits.
 
-- List notes and folders
-- Search notes and note content (fuzzy)
-- Create, read, update, delete notes
-- Manage YAML frontmatter fields
-- Support for templates via the notesmd-cli template processing extension
+Use this skill whenever Hermes needs to read, search, create, reorganize, or update notes in Fede's vault, or when another skill needs Obsidian behavior as a dependency.
 
-## Vault selection
+## When to Use
 
-How the skill resolves which vault to use (priority order):
+Use this skill when any of these are true:
+- the task touches `/home/azureuser/repos/projects/claude-second-brain`;
+- you need to create or update a markdown note in the vault;
+- you need to create or inspect TaskNotes tasks;
+- you need to process inbox items under `00_Inbox/`;
+- you need to route captured content into PARA folders;
+- you need content-pipeline outputs to land in the vault coherently;
+- a PM/documentation workflow depends on current vault conventions.
 
-1) Explicit `--vault` parameter passed to the command
-2) Skill config `vaultPath` (if non-empty)
-3) `notesmd-cli` default (set via `notesmd-cli set-default`)
+Do not use this skill for:
+- code-repo task tracking via Beads;
+- arbitrary raw file writes into the vault when the user did not explicitly authorize bypassing the Obsidian workflow;
+- editing unrelated non-vault repos.
 
-## Vault-awareness: Claudesidian / PARA / BASB conventions (Fede)
+## Core Rule
 
-When the vault contains these files, treat them as *operational directives*:
+When operating on the vault, do not treat it like a generic filesystem.
 
-- `CLAUDE.md` (**source of truth**) — vault guidelines
-- `AGENTS.md` — legacy/secondary guidelines (read, but prefer `CLAUDE.md` if conflicting)
+Default behavior:
+- use `notesmd-cli` for note-level operations where possible;
+- read vault directives before writing;
+- preserve frontmatter and review signals;
+- respect TaskNotes as the persistent task system inside the vault;
+- keep PARA folder semantics intact.
 
-Additionally, prefer *machine-readable* configuration when present:
+If the user explicitly asks to bypass the Obsidian workflow and edit raw files directly, follow that instruction, but treat it as an exception rather than the default mode.
 
-- TaskNotes plugin config: `.obsidian/plugins/tasknotes/data.json`
+## Canonical Paths
 
-### Canonical structure (PARA)
+Vault root:
+- `/home/azureuser/repos/projects/claude-second-brain`
 
-Prefer these canonical folders when creating/moving new content:
+Directive files:
+- `/home/azureuser/repos/projects/claude-second-brain/CLAUDE.md`
+- `/home/azureuser/repos/projects/claude-second-brain/AGENTS.md`
 
+Machine-readable task config:
+- `/home/azureuser/repos/projects/claude-second-brain/.obsidian/plugins/tasknotes/data.json`
+
+Canonical PARA roots:
 - `00_Inbox/`
 - `01_Projects/`
 - `02_Areas/`
@@ -64,78 +70,204 @@ Prefer these canonical folders when creating/moving new content:
 - `05_Attachments/`
 - `06_Metadata/`
 
-Treat these as **legacy** (read/search OK, but do not write new content there unless explicitly requested):
+Canonical TaskNotes folder on this VM:
+- `03_Resources/TaskNotes/Tasks/`
 
-- `Inbox/` (old inbox to be migrated)
-- `03 - Resources/` (legacy resources path)
+Historical / legacy paths:
+- `Inbox/`
+- `03 - Resources/`
 
-### Frontmatter and review workflow
+Treat legacy paths as historical references only. Read/search is fine if the user explicitly points there, but do not choose them as defaults for new content in the current vault.
 
-If the vault directives require it (Fede’s default): when you **create or modify any markdown note** in the vault, enforce:
+## Vault Precedence Rules
 
-- Update/add `modified: YYYY-MM-DD`
-- Set `leido: false`
-- If missing frontmatter: add a minimal frontmatter block appropriate to the note type
+When directives compete, use this order:
+1. explicit current-user instruction;
+2. `CLAUDE.md` in the vault;
+3. `AGENTS.md` in the vault;
+4. `.obsidian/plugins/tasknotes/data.json` for TaskNotes-specific defaults;
+5. this skill.
 
-Do not over-invent schemas: prefer existing vault templates and conventions.
+Practical consequence on this VM:
+- `CLAUDE.md` is newer and more complete than `AGENTS.md`;
+- if they differ, prefer `CLAUDE.md`;
+- use `AGENTS.md` as secondary context, not as the final authority.
 
-### Git / version control
+## Notesmd-cli Guidance
 
-If the vault uses Obsidian Git automation: **do not commit** unless explicitly instructed by Fede.
+Validated command surface on this VM (`notesmd-cli v0.3.0`):
+- `notesmd-cli list`
+- `notesmd-cli search`
+- `notesmd-cli search-content`
+- `notesmd-cli create`
+- `notesmd-cli delete`
+- `notesmd-cli move`
+- `notesmd-cli frontmatter`
+- `notesmd-cli print`
+- `notesmd-cli daily`
+- `notesmd-cli set-default`
 
-## Task management: TaskNotes (Obsidian) vs Beads (dev repos)
+Preferred usage patterns:
+- list folders/notes: `notesmd-cli list --vault "<vault>"`
+- search note names: `notesmd-cli search "topic" --vault "<vault>"`
+- search note content: `notesmd-cli search-content "term" --vault "<vault>"`
+- create note: `notesmd-cli create "path/to/note.md" --content "..." --vault "<vault>"`
+- inspect/edit frontmatter: `notesmd-cli frontmatter "note" --print|--edit ... --vault "<vault>"`
+- move note while updating links: `notesmd-cli move "old" "new" --vault "<vault>"`
 
-This vault uses the **TaskNotes** plugin (file-per-task). The skill should prefer TaskNotes for personal/project/action tasks **inside the vault**, except when the user is clearly working inside a **software repository** where tasks are tracked via **Beads**.
+Vault selection priority:
+1. explicit `--vault` argument;
+2. configured default vault in `notesmd-cli`;
+3. if needed, resolve from known VM path `/home/azureuser/repos/projects/claude-second-brain`.
 
-Decision rule of thumb:
+## Markdown Metadata Rules
 
-- Task is about *vault / life / projects / areas* → create/update a **TaskNotes task file**
-- Task is about *implementing code changes in a specific repo* → track via **Beads** (not TaskNotes)
+When creating or modifying any markdown note in the vault, current vault policy requires:
+- update or add `modified: YYYY-MM-DD` for general notes when that schema is used;
+- set `leido: false` on edited/created notes so Fede can review them;
+- if frontmatter is missing, add an appropriate minimal frontmatter block instead of leaving the note schema-less.
 
-### TaskNotes rules (agent-critical)
+Minimum generic frontmatter when no better template exists:
 
-- Do **not** create tasks as plain checkboxes in regular notes.
-- Prefer reading `.obsidian/plugins/tasknotes/data.json` to discover:
-  - canonical `tasksFolder`
-  - legacy `inlineTaskConvertFolder`
-  - default statuses/priorities
-- When creating a task:
-  - create it in `tasksFolder`
-  - set `status: pending` by default
-  - set `tags: [task]`
-  - include `dateCreated` + `dateModified` timestamps (ISO)
-  - include `leido: false`
-- Never delete or move task files unless explicitly instructed.
-- Never create recurring tasks unless explicitly instructed (plugin-managed complexity).
+```yaml
+---
+created: YYYY-MM-DD
+modified: YYYY-MM-DD
+leido: false
+tags: []
+---
+```
 
-## Inbox processing (stage 1)
+Important nuance:
+- TaskNotes uses its own schema with fields like `title`, `status`, `priority`, `dateCreated`, `dateModified`, `scheduled`, etc.;
+- for TaskNotes, respect the plugin schema first, and still keep `leido: false`.
 
-Primary goal: help organize and make interaction with the vault “smart”, respecting PARA.
+## TaskNotes vs Beads
 
-- Prefer scanning/processing `00_Inbox/`.
-- Treat `Inbox/` as legacy input; avoid writing there.
-- When a note clearly represents an actionable item:
-  - create a TaskNotes task (intelligently) without requiring an explicit “create task” phrase
-  - *unless* the context is a software repo task → use Beads instead
+This distinction is critical.
 
-## Link capture & transcription (stage 2 – planned)
+Use TaskNotes when:
+- the task belongs in Fede's personal/project vault;
+- the task must persist beyond the current session;
+- the task is for Fede to review or complete later;
+- the task should appear in Obsidian's TaskNotes plugin.
 
-Planned future flows (not mandatory for stage 1):
+Use Beads when:
+- the task is implementation work inside a software repository;
+- the unit of work belongs to code planning/execution rather than vault planning;
+- the repo already uses Beads as the source of truth for engineering tasks.
 
-- Web URLs → capture via `web_fetch` (or vault scripts if configured)
-- YouTube → transcript extraction/summarization via dedicated OpenClaw skills
-- Instagram → via dedicated OpenClaw skills
-- X/Twitter → TBD (likely separate skill or best-effort capture)
+Rule of thumb:
+- vault / life / project-management / follow-up tasks -> TaskNotes
+- code changes in a repo -> Beads
 
-## Notesmd-cli usage (examples)
+## TaskNotes Rules for This Vault
 
-- List vault root:
-  - `notesmd-cli list --vault "{vault}"`
+Read `.obsidian/plugins/tasknotes/data.json` when TaskNotes behavior matters.
 
-- Search notes:
-  - `notesmd-cli search "topic" --vault "{vault}"`
+Current validated values on this VM:
+- `tasksFolder`: `03_Resources/TaskNotes/Tasks`
+- `inlineTaskConvertFolder`: `03_Resources/TaskNotes/Tasks`
+- `defaultTaskPriority`: `normal`
+- `defaultTaskStatus`: `pending`
+- `taskTag`: `task`
+- filename template: timestamp-based custom filenames
 
-- Create note:
-  - `notesmd-cli create "path/to/note.md" --content "..." --vault "{vault}"`
+When creating a TaskNotes task, prefer this shape:
+- `title`
+- `status: pending`
+- `priority: normal|high|low` as appropriate
+- `dateCreated` and `dateModified` in ISO datetime form
+- `leido: false`
+- `tags:` including `task`
+- `contexts: []`
+- `projects:` with wiki links when known
+- `scheduled:` if there is an explicit day or if the plugin default should apply
 
-License: MIT
+Do not:
+- create persistent tasks as plain checkboxes in arbitrary notes;
+- invent recurring/advanced TaskNotes fields unless needed;
+- delete or move TaskNotes files without explicit instruction.
+
+## Inbox and PARA Handling
+
+Primary intake area:
+- `00_Inbox/`
+
+Use `00_Inbox/` for capture-first workflows, then route to canonical PARA destinations.
+
+Examples:
+- project material -> `01_Projects/`
+- continuing responsibility -> `02_Areas/`
+- reference material -> `03_Resources/`
+- attachments/media -> `05_Attachments/`
+- inactive/completed material -> `04_Archive/`
+
+Do not create new permanent content under historical paths like `Inbox/` or `03 - Resources/` unless the user explicitly requests it.
+
+## Git / Version Control Rule
+
+The vault uses Obsidian Git automation.
+
+Default rule:
+- do not run git commit/push for the vault unless Fede explicitly asks for git operations.
+
+The skill may edit files; it should not autonomously commit those edits.
+
+## Content-Pipeline Support
+
+This skill is also the Obsidian-side contract for content-pipeline outputs.
+
+Current repo support files live under:
+- `references/content-pipeline/`
+- `templates/content-pipeline/`
+- `content-pipeline/config.json`
+- `content-pipeline/scripts/`
+
+Operational guidance:
+- use `web_extract` for straightforward static/article extraction;
+- use browser fallback for dynamic/live pages when extraction quality matters;
+- keep content-pipeline note output aligned with current vault metadata rules;
+- treat X/Twitter, Instagram, and YouTube extraction heuristics as content-pipeline concerns, while this skill owns the Obsidian landing behavior and vault conventions.
+
+## Boundaries with Other Skills
+
+- `pm-agent`: owns project-state synthesis, PM decisions, and when vault updates should happen.
+- `fede-ops`: captures Fede's general operating preferences and side-effect boundaries.
+- `content-pipeline`: owns capture/extraction/classification flow for inbound links/media.
+- `obsidian-skill-fede`: owns how vault reads/writes should behave once Obsidian is involved.
+
+## Common Pitfalls
+
+1. Treating `AGENTS.md` as equal to `CLAUDE.md`.
+   On this VM, `CLAUDE.md` is newer. Prefer it.
+
+2. Writing directly into the vault without respecting review metadata.
+   If you edit markdown, update the appropriate metadata and set `leido: false`.
+
+3. Creating persistent tasks as checklists in random notes.
+   Use TaskNotes files in `03_Resources/TaskNotes/Tasks/` instead.
+
+4. Using legacy paths as defaults.
+   `Inbox/` and `03 - Resources/` are historical, not the current canonical write targets.
+
+5. Mixing code-repo work with vault task tracking.
+   Beads for engineering repos, TaskNotes for vault-managed follow-up.
+
+6. Autocommitting vault changes.
+   Obsidian Git is configured; do not commit unless Fede explicitly asks.
+
+7. Assuming any markdown template is acceptable.
+   Prefer current vault templates and real plugin config over invented schemas.
+
+## Verification Checklist
+
+- [ ] Vault root exists at `/home/azureuser/repos/projects/claude-second-brain`
+- [ ] `CLAUDE.md` and `AGENTS.md` are readable
+- [ ] TaskNotes config exists at `.obsidian/plugins/tasknotes/data.json`
+- [ ] Canonical TaskNotes folder is `03_Resources/TaskNotes/Tasks/`
+- [ ] `notesmd-cli --version` works
+- [ ] New content is routed to canonical PARA paths, not legacy ones
+- [ ] Markdown edits preserve/update required review metadata
+- [ ] Persistent tasks are created as TaskNotes, not plain checkboxes
+- [ ] Vault git operations are avoided unless explicitly requested

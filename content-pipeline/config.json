@@ -1,0 +1,78 @@
+{
+  "version": "2.0.0",
+  "description": "Hermes-aligned content-pipeline support files for processing inbox links into structured Obsidian notes",
+  "vault_base_path": "/home/azureuser/repos/projects/claude-second-brain",
+  "inbox_path": "00_Inbox/Links-To-Process",
+  "output_folders": {
+    "article": "00_Inbox/Content-Pipeline",
+    "instagram": "00_Inbox/Content-Pipeline",
+    "video": "00_Inbox/Content-Pipeline",
+    "recipe": "00_Inbox/Content-Pipeline",
+    "idea": "00_Inbox/Content-Pipeline",
+    "tutorial": "00_Inbox/Content-Pipeline",
+    "book": "00_Inbox/Content-Pipeline",
+    "other": "00_Inbox/Content-Pipeline"
+  },
+  "template_paths": {
+    "article": "06_Metadata/Templates/Manuales/Main note template.md",
+    "recipe": "06_Metadata/Templates/Manuales/Receta Template.md",
+    "routine": "06_Metadata/Templates/Manuales/Receta Template.md",
+    "book": "06_Metadata/Templates/book-template.md",
+    "idea": "06_Metadata/Templates/Manuales/Idea Filter Template.md"
+  },
+  "execution": {
+    "mode": "sequential",
+    "max_links_per_run": 10,
+    "process_one_link_end_to_end": true
+  },
+  "scraping": {
+    "web_extract_max_chars_markdown": 20000,
+    "web_extract_max_chars_text": 12000
+  },
+  "extractors": {
+    "markitdown": {
+      "enabled": true,
+      "tmp_dir": "/tmp"
+    },
+    "summarize_cli": {
+      "enabled": false,
+      "prefer_extract_only": true,
+      "use_firecrawl": "auto"
+    },
+    "ytdlp": {
+      "enabled": true,
+      "tmp_dir": "/tmp",
+      "audio_preferred_ext": "m4a",
+      "cookies": {
+        "instagram": "/home/azureuser/secrets/instagram-cookies.txt",
+        "youtube": "/home/azureuser/secrets/youtube-cookies.txt"
+      },
+      "js_runtime": "/home/azureuser/.deno/bin/deno"
+    },
+    "transcription": {
+      "enabled": true,
+      "provider": "openai_whisper",
+      "env": "OPENAI_API_KEY",
+      "model": "whisper-1",
+      "script": "content-pipeline/scripts/transcribe_openai_whisper.sh",
+      "response_format": "text"
+    }
+  },
+  "integration": {
+    "memory_search_max_results": 5,
+    "auto_link_threshold": 80,
+    "suggest_link_threshold": 50,
+    "min_content_length": 200
+  },
+  "error_handling": {
+    "max_retries": 1,
+    "timeout_seconds": 60,
+    "mark_errors": true
+  },
+  "features": {
+    "auto_linking": false,
+    "deduplication": false,
+    "tag_suggestions": true,
+    "project_detection": true
+  }
+}
