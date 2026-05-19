@@ -107,13 +107,23 @@ Validated command surface on this VM (`notesmd-cli v0.3.0`):
 - `notesmd-cli daily`
 - `notesmd-cli set-default`
 
+Important VM nuance:
+- on this machine the binary may not be on `PATH` inside Hermes tool shells;
+- if `notesmd-cli` returns `command not found`, use the absolute binary path `/home/azureuser/bin/notesmd-cli`;
+- keep the same arguments/behavior, just swap the binary path.
+
 Preferred usage patterns:
-- list folders/notes: `notesmd-cli list --vault "<vault>"`
+- list folders/notes: `notesmd-cli list [path] --vault "<vault>"`
 - search note names: `notesmd-cli search "topic" --vault "<vault>"`
 - search note content: `notesmd-cli search-content "term" --vault "<vault>"`
 - create note: `notesmd-cli create "path/to/note.md" --content "..." --vault "<vault>"`
 - inspect/edit frontmatter: `notesmd-cli frontmatter "note" --print|--edit ... --vault "<vault>"`
 - move note while updating links: `notesmd-cli move "old" "new" --vault "<vault>"`
+
+For project/area discovery on this VM, use positional paths like:
+- `notesmd-cli list "01_Projects" --vault "<vault>"`
+- `notesmd-cli list "02_Areas" --vault "<vault>"`
+and then keep only folder entries from the output if you need a registry snapshot.
 
 Vault selection priority:
 1. explicit `--vault` argument;
@@ -213,6 +223,16 @@ Default rule:
 - do not run git commit/push for the vault unless Fede explicitly asks for git operations.
 
 The skill may edit files; it should not autonomously commit those edits.
+
+## Vault Sync / OneDrive Recovery
+
+The vault syncs to OneDrive via `rclone bisync`, not via git.
+
+Operational rule:
+- if vault content appears stale across VM / laptop / mobile, check `/tmp/rclone-sync.log` before guessing;
+- common bisync failure is missing prior listings, which requires a deliberate `rclone bisync ... --resync` recovery;
+- use `references/vault-rclone-sync-recovery.md` for the diagnostic and recovery procedure;
+- keep this as vault/Obsidian ops, not inside development workflow skills.
 
 ## Content-Pipeline Support
 
